@@ -103,7 +103,27 @@ data:
         "subnet": "10.22.0.0/16"
       }
     }
-
+---
+# This ConfigMap can be used to configure a self-hosted Pon0 installation.
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: pon3-config
+  namespace: kube-system
+data:
+  # The CNI network configuration to install on each node.
+  cni_pon3_network_config: |-
+    {
+        "name": "pon3",
+        "type": "bridge",
+        "bridge": "pon3",
+        "isGateway": false,
+        "ipMask": false,
+        "ipam": {
+        "type": "host-local",
+        "subnet": "10.21.0.0/16"
+      }
+    }
 ---
 # This ConfigMap can be used to configure a self-hosted Pon0 installation.
 kind: ConfigMap
@@ -177,6 +197,11 @@ spec:
                 configMapKeyRef:
                   name: pon0-config
                   key: cni_pon0_network_config
+            - name: CNI_PON3_NETWORK_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: pon3-config
+                  key: cni_pon3_network_config
             - name: CNI_PON1_NETWORK_CONFIG
               valueFrom:
                 configMapKeyRef:
