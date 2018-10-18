@@ -55,3 +55,46 @@ spec:
            imagePullPolicy: {{ .Values.images.olt.pullPolicy }}
            securityContext:
              privileged: true
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: rg2
+  namespace: {{ .Values.global.namespace }}
+spec:
+   replicas: 1
+   template:
+     metadata:
+       labels:
+         app: rg2
+       annotations:
+         cni: "pon3"
+     spec:
+       affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - onu2
+              topologyKey: kubernetes.io/hostname
+       containers:
+         - name: rg2
+           image: {{ .Values.pull_docker_registry }}{{ .Values.images.rg.repository }}:{{ .Values.images.rg.tag }}
+           env:
+             - name: POD_IP
+               valueFrom:
+                 fieldRef:
+                   fieldPath: status.podIP
+             - name: NAMESPACE
+               valueFrom:
+                 fieldRef:
+                   fieldPath: metadata.namespace
+           command: [ "/bin/bash", "-c", "trap : TERM INT; sleep infinity & wait" ]
+           imagePullPolicy: {{ .Values.images.olt.pullPolicy }}
+           securityContext:
+             privileged: true
