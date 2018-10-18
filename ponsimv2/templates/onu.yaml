@@ -87,3 +87,81 @@ spec:
               name: grpc-port
 
            imagePullPolicy: {{ .Values.images.olt.pullPolicy }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+   name: onu2
+   namespace: {{ .Values.global.namespace }}
+   labels:
+     name: onu2
+spec:
+  ports:
+    - name: grpc
+      port: 50062
+      targetPort: 50062
+  selector:
+    app: onu2
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: onu2
+  namespace: {{ .Values.global.namespace }}
+spec:
+   replicas: 1
+   template:
+     metadata:
+       labels:
+         app: onu2
+       annotations:
+         cni: "calico,pon3"
+     spec:
+       affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - rg2
+              topologyKey: kubernetes.io/hostname
+
+       containers:
+         - name: onu2
+           image: {{ .Values.pull_docker_registry }}{{ .Values.images.onu.repository }}:{{ .Values.images.onu.tag }}
+           env:
+             - name: POD_IP
+               valueFrom:
+                 fieldRef:
+                   fieldPath: status.podIP
+             - name: NAMESPACE
+               valueFrom:
+                 fieldRef:
+                   fieldPath: metadata.namespace
+
+           args:
+             - "/app/ponsim"
+             - "-device_type"
+             - "ONU"
+             - "-serial_number"
+             - "ALCT12345678"
+             - "-parent_addr"
+             - "olt"
+             - "-grpc_port"
+             - "50062"
+             - "-internal_if"
+             - "eth0"
+             - "-external_if"
+             - "eth1"
+             - "-promiscuous"
+
+           ports:
+            - containerPort: 50062
+              name: grpc-port
+
+           imagePullPolicy: {{ .Values.images.olt.pullPolicy }}
+
